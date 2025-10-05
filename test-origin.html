@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Origin City Functionality</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .form-group { margin: 10px 0; }
+        .form-input { padding: 8px; width: 200px; }
+        .suggestions-dropdown { border: 1px solid #ccc; max-height: 200px; overflow-y: auto; }
+        .suggestion-item { display: block; width: 100%; padding: 8px; border: none; background: white; text-align: left; cursor: pointer; }
+        .suggestion-item:hover { background: #f0f0f0; }
+        .hidden { display: none; }
+        .transport-stats { margin: 20px 0; padding: 10px; background: #f5f5f5; }
+        .stat-item { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>Test Origin City Functionality</h1>
+    
+    <div class="form-group">
+        <label for="origin">Origin City:</label>
+        <input id="origin" type="text" placeholder="e.g., Delhi, Mumbai, Bangalore..." class="form-input" />
+        <div id="originSuggestions" class="suggestions-dropdown hidden">
+            <div class="suggestions-content"></div>
+        </div>
+    </div>
+
+    <div class="transport-stats">
+        <div class="stat-item">
+            <span>Total Distance: </span>
+            <span id="totalDistance">0 km</span>
+        </div>
+        <div class="stat-item">
+            <span>Total Cost: </span>
+            <span id="totalCost">₹0</span>
+        </div>
+        <div class="stat-item">
+            <span>Total Time: </span>
+            <span id="totalTime">0 hrs</span>
+        </div>
+    </div>
+
+    <div id="transportationSegments">
+        <div class="empty-state">
+            <p>No transportation segments yet. Enter origin and destination to get optimized routes.</p>
+        </div>
+    </div>
+
+    <script src="destinations.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

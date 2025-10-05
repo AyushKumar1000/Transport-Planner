@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Advanced Transport Planner - Multi-Modal Travel Route Optimization</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore-compat.js"></script>
+    <script src="config.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=key&callback=initMap" async defer></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
+</head>
+<body>
+    <div id="firebase-status" class="firebase-status" style="display: none;">
+        <div class="status-indicator">
+            <span class="status-dot"></span>
+            <span class="status-text">Connecting to Firebase...</span>
+        </div>
+    </div>
+    <!-- Full-screen Sign-In Gate -->
+    <div id="signInScreen" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg,#f8fafc,#eef2ff);">
+        <div style="width: 100%; max-width: 420px; background: white; border: 1px solid rgba(0,0,0,0.06); box-shadow: 0 10px 30px rgba(0,0,0,0.06); border-radius: 16px; padding: 24px;">
+            <div style="display:flex; align-items:center; gap:12px; margin-bottom: 8px;">
+                <img src="public/placeholder-logo.png" alt="Logo" width="36" height="36" style="border-radius:8px;" />
+                <div>
+                    <div style="font-weight: 700; font-size: 18px; color: #111827;">Travel Planner</div>
+                    <div style="font-size: 12px; color: #6b7280;">Sign in to continue</div>
+                </div>
+            </div>
+            <div style="margin-top: 12px; display: grid; gap: 10px;">
+                <div>
+                    <label for="emailInput" style="display:block; font-size:12px; color:#374151; margin-bottom:6px;">Email</label>
+                    <input id="emailInput" type="email" placeholder="you@gmail.com" class="form-input" style="width:100%;" />
+                </div>
+                <div>
+                    <label for="passwordInput" style="display:block; font-size:12px; color:#374151; margin-bottom:6px;">Password</label>
+                    <input id="passwordInput" type="password" placeholder="••••••••" class="form-input" style="width:100%;" />
+                </div>
+                <button id="emailSignInBtn" class="btn-outline" style="width:100%;">Sign in</button>
+                <button id="emailRegisterBtn" class="btn-outline" style="width:100%;">Create account</button>
+                <button id="resetPasswordBtn" class="btn-outline" style="width:100%;">Forgot password</button>
+                <div id="authError" style="display:none; margin-top:2px; color:#b91c1c; font-size:13px;"></div>
+            </div>
+            <div style="margin-top: 14px; font-size: 12px; color: #6b7280;">
+                By continuing, you agree to our Terms and acknowledge the Privacy Policy.
+            </div>
+        </div>
+    </div>
+
+    <div id="appRoot" class="min-h-screen" style="display:none;">
+        <!-- Auth Controls -->
+        <div id="authBar" style="position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.75); backdrop-filter: blur(6px); border-bottom: 1px solid rgba(0,0,0,0.06);">
+            <div style="max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 10px 16px;">
+                <span id="userGreeting" style="font-size: 14px; color: #444; display: none;"></span>
+                <span id="userUid" style="font-size: 12px; color: #6b7280; display:none;"></span>
+                <button id="signInBtn" class="btn-outline">Sign in with Google</button>
+                <button id="signOutBtn" class="btn-outline" style="display: none;">Sign out</button>
+            </div>
+        </div>
+        <!-- Hero Section -->
+        <div class="hero-section">
+            <div class="hero-background"></div>
+            <div class="hero-background-2"></div>
+            
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="hero-badge">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                            <circle cx="12" cy="10" r="3"/>
+                        </svg>
+                        Advanced Transport Planner
+                    </div>
+                    <h1 class="hero-title">Multi-Modal Route Optimization</h1>
+                    <p class="hero-description">
+                        Plan efficient multi-city routes with intelligent transportation options including flights, trains, buses, and road trips with real-time scheduling and cost optimization.
+                    </p>
+                </div>
+
+                <!-- Planning Form -->
+                <div class="planning-form">
+                    <div class="form-content">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="origin" class="form-label">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                        <circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                    Origin City
+                                </label>
+                                <div class="input-wrapper">
+                                    <input
+                                        id="origin"
+                                        type="text"
+                                        placeholder="e.g., Delhi, Mumbai, Bangalore..."
+                                        class="form-input"
+                                    />
+                                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09z"/>
+                                        <path d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456z"/>
+                                    </svg>
+                                </div>
+                                <div id="originSuggestions" class="suggestions-dropdown hidden">
+                                    <div class="suggestions-content"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-group destination-group">
+                                <label for="destination" class="form-label">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                        <circle cx="12" cy="10" r="3"/>
+                                    </svg>
+                                    Destination City
+                                </label>
+                                <div class="input-wrapper">
+                                    <input
+                                        id="destination"
+                                        type="text"
+                                        placeholder="e.g., Goa, Jaipur, Kerala..."
+                                        class="form-input"
+                                    />
+                                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09z"/>
+                                        <path d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456z"/>
+                                    </svg>
+                                </div>
+                                <div id="suggestions" class="suggestions-dropdown hidden">
+                                    <div class="suggestions-content"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="accommodation" class="form-label">Accommodation</label>
+                                <input
+                                    id="accommodation"
+                                    type="text"
+                                    placeholder="e.g., Hotel name or address"
+                                    class="form-input"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="startDate" class="form-label">
+                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                        <line x1="16" y1="2" x2="16" y2="6"/>
+                                        <line x1="8" y1="2" x2="8" y2="6"/>
+                                        <line x1="3" y1="10" x2="21" y2="10"/>
+                                    </svg>
+                                    Start Date
+                                </label>
+                                <input
+                                    id="startDate"
+                                    type="date"
+                                    class="form-input"
+                                />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="endDate" class="form-label">End Date</label>
+                                <input
+                                    id="endDate"
+                                    type="date"
+                                    class="form-input"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="transportation-section">
+                            <div class="section-header">
+                                <label class="section-title">Multi-Modal Transportation</label>
+                                <div class="transport-controls">
+                                    <select id="optimizationMode" class="form-select">
+                                        <option value="cost">Cost Optimized</option>
+                                        <option value="time">Time Optimized</option>
+                                        <option value="balanced">Balanced</option>
+                                    </select>
+                                    <button id="addSegment" class="btn-outline">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                        Add Segment
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="transport-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Total Distance:</span>
+                                    <span id="totalDistance" class="stat-value">0 km</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Total Cost:</span>
+                                    <span id="totalCost" class="stat-value">₹0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Total Time:</span>
+                                    <span id="totalTime" class="stat-value">0 hrs</span>
+                                </div>
+                            </div>
+
+                            <div id="transportationSegments" class="segments-container">
+                                <div class="empty-state">
+                                    <p>No transportation segments yet. Enter origin and destination to get optimized routes.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="activities" class="form-label">Activities & Notes</label>
+                            <textarea
+                                id="activities"
+                                placeholder="List your planned activities, restaurants, attractions..."
+                                class="form-textarea"
+                                rows="6"
+                            ></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Destination Map -->
+                <div id="destinationMap" class="destination-map hidden">
+                    <h3 class="map-title">Destination Map</h3>
+                    <div id="map" style="width: 100%; height: 300px; border-radius: 8px; margin-top: 12px;"></div>
+                </div>
+
+                <!-- Trip Summary -->
+                <div id="tripSummary" class="trip-summary hidden">
+                    <h3 class="summary-title">Trip Summary</h3>
+                    <div class="summary-content">
+                        <div id="summaryDestination" class="summary-item hidden">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                            <div>
+                                <p class="summary-label">Destination</p>
+                                <p class="summary-value" id="summaryDestinationValue"></p>
+                            </div>
+                        </div>
+
+                        <div id="summaryDates" class="summary-item hidden">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <div>
+                                <p class="summary-label">Dates</p>
+                                <p class="summary-value" id="summaryDatesValue"></p>
+                            </div>
+                        </div>
+
+                        <div id="summaryTransportation" class="summary-item hidden">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M16 3h5v5l-5-5z"/>
+                                <path d="M8 3H3v5l5-5z"/>
+                                <path d="M12 22v-8.3a4 4 0 0 0-1.172-2.872L3 3"/>
+                                <path d="M12 22v-8.3a4 4 0 0 1 1.172-2.872L21 3"/>
+                            </svg>
+                            <div class="flex-1">
+                                <p class="summary-label" id="summaryTransportationLabel">Transportation</p>
+                                <div id="summaryTransportationList" class="transportation-list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Features Section -->
+        <div class="features-section">
+            <div class="features-content">
+                <div class="features-header">
+                    <h2 class="features-title">Instant Trip Plans for India</h2>
+                    <p class="features-description">
+                        Just enter your destination and get a complete itinerary with transportation, stays, and activities
+                    </p>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09z"/>
+                                <path d="M18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456z"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Auto-Generated Plans</h3>
+                        <p class="feature-description">
+                            Enter any Indian destination and get instant trip suggestions with transportation and activities
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                <circle cx="12" cy="10" r="3"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Complete Itinerary</h3>
+                        <p class="feature-description">
+                            Track accommodations, activities, and important notes for your entire trip
+                        </p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                        </div>
+                        <h3 class="feature-title">Fully Customizable</h3>
+                        <p class="feature-description">
+                            Edit, add, or remove any part of the generated plan to match your preferences
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="api-config.js"></script>
+    <script src="api-service.js"></script>
+    <script src="destinations.js"></script>
+    <script src="maps.js"></script>
+    <script src="script.js"></script>
+    <script src="auth.js"></script>
+</body>
+</html>
+
