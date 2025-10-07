@@ -30,6 +30,7 @@ class TransportPlanner {
         this.lastSavedQuery = '';
         this.destinationCache = new Map(); // Simple cache instead of LRU
         this.isLoading = false;
+        this.routeDistanceKm = 0; // real route distance from Google Directions when available
         
         // Initialize transport cost database
         this.initializeTransportCosts();
@@ -131,7 +132,15 @@ class TransportPlanner {
             });
 
             originInput.addEventListener('focus', () => {
-                if (this.origin && this.filteredDestinations.length > 0) {
+                // If empty, show popular destinations like a place dropdown
+                if (!this.origin) {
+                    try {
+                        this.filteredDestinations = (window.getPopularDestinations && window.getPopularDestinations(8)) || [];
+                    } catch (_) {
+                        this.filteredDestinations = [];
+                    }
+                }
+                if (this.filteredDestinations.length > 0) {
                     this.showSuggestions = true;
                     this.renderOriginSuggestions();
                 }
@@ -145,10 +154,22 @@ class TransportPlanner {
         destinationInput.addEventListener('input', (e) => {
             this.destination = e.target.value;
             this.handleDestinationChange();
+            // If both are present (typed), optimize and draw route
+            if (this.origin && this.destination) {
+                this.optimizeTransportRoute();
+            }
         });
 
         destinationInput.addEventListener('focus', () => {
-            if (this.destination && this.filteredDestinations.length > 0) {
+            // If empty, show popular destinations like a place dropdown
+            if (!this.destination) {
+                try {
+                    this.filteredDestinations = (window.getPopularDestinations && window.getPopularDestinations(8)) || [];
+                } catch (_) {
+                    this.filteredDestinations = [];
+                }
+            }
+            if (this.filteredDestinations.length > 0) {
                 this.showSuggestions = true;
                 this.renderSuggestions();
             }
@@ -230,6 +251,14 @@ class TransportPlanner {
         this.renderOriginSuggestions();
         this.updateSummary();
         
+        // If an exact origin is recognized, show it on the map immediately
+        try {
+            const originData = searchDestination(this.origin);
+            if (originData && originData.coordinates && window.showPointOnMap) {
+                window.showPointOnMap(originData.name, originData.coordinates, 'green');
+            }
+        } catch (_) {}
+        
         // If destination is already set, optimize transport route
         if (this.destination) {
             this.optimizeTransportRoute();
@@ -266,6 +295,12 @@ class TransportPlanner {
 
         // Add to visited destinations (Set for O(1) lookup)
         this.visitedDestinations.add(originName);
+
+        // Try to show origin on the map immediately if we know its coordinates
+        const originData = searchDestination(originName);
+        if (originData && originData.coordinates && window.showPointOnMap) {
+            window.showPointOnMap(originName, originData.coordinates, 'green');
+        }
 
         // If destination is already set, optimize transport route
         if (this.destination) {
@@ -524,7 +559,9 @@ class TransportPlanner {
         const costElement = document.getElementById('totalCost');
         const timeElement = document.getElementById('totalTime');
 
-        if (distanceElement) distanceElement.textContent = `${totalDistance} km`;
+        // Prefer real route distance if available
+        const displayKm = this.routeDistanceKm > 0 ? this.routeDistanceKm : totalDistance;
+        if (distanceElement) distanceElement.textContent = `${displayKm} km`;
         if (costElement) costElement.textContent = `₹${totalCost.toLocaleString()}`;
         if (timeElement) timeElement.textContent = `${totalTime} hrs`;
     }
@@ -533,32 +570,58 @@ class TransportPlanner {
     optimizeTransportRoute() {
         // If we have both origin and destination, calculate full route
         if (this.origin && this.destination) {
-            const distance = this.calculateDistance(this.origin, this.destination);
-            if (distance === 0) return;
+            const proceedWith = (km) => {
+                this.routeDistanceKm = km;
+                const useDistance = km > 0 ? km : fallbackDistance;
+                this.applyOptimizedSegments(useDistance);
+                this.updateSummary();
+                this.updateTransportationSection();
+                this.updateTransportStats();
+            };
 
-            // Get optimal transport modes based on distance and preferences
-            const optimalModes = this.getOptimalTransportModes(distance);
-            
-            // Create optimized segments
-            this.segments = optimalModes.map(mode => ({
-                id: ++this.segmentCounter,
-                mode: mode,
-                from: this.origin,
-                to: this.destination,
-                distance: distance,
-                estimatedCost: this.calculateTransportCost(mode, distance),
-                estimatedTime: this.calculateTransportTime(mode, distance),
-                notes: this.getTransportNotes(mode, distance)
-            }));
+            const computeRoute = (originStr, destStr) => {
+                if (window.showRouteOnMap) {
+                    window.showRouteOnMap(originStr, destStr)
+                        .then(({ distanceKm }) => proceedWith(distanceKm))
+                        .catch(() => proceedWith(0));
+                } else {
+                    proceedWith(0);
+                }
+            };
 
-            this.updateSummary();
-            this.updateTransportationSection();
-            this.updateTransportStats();
+            // Use geocoding for any free-text Indian places
+            if (window.geocodePlace) {
+                Promise.all([
+                    window.geocodePlace(this.origin).catch(() => null),
+                    window.geocodePlace(this.destination).catch(() => null)
+                ]).then(([o, d]) => {
+                    // Prefer formatted strings to improve Directions success
+                    const originStr = o?.formatted || this.origin;
+                    const destStr = d?.formatted || this.destination;
+                    computeRoute(originStr, destStr);
+                }).catch(() => computeRoute(this.origin, this.destination));
+            } else {
+                computeRoute(this.origin, this.destination);
+            }
         }
         // If we only have origin, show origin-based information
         else if (this.origin) {
             this.showOriginBasedInfo();
         }
+    }
+
+    applyOptimizedSegments(distanceKm) {
+        const modes = this.getOptimalTransportModes(distanceKm);
+        this.segments = modes.map(mode => ({
+            id: ++this.segmentCounter,
+            mode,
+            from: this.origin,
+            to: this.destination,
+            distance: distanceKm,
+            estimatedCost: this.calculateTransportCost(mode, distanceKm),
+            estimatedTime: this.calculateTransportTime(mode, distanceKm),
+            notes: this.getTransportNotes(mode, distanceKm)
+        }));
     }
 
     showOriginBasedInfo() {
@@ -713,22 +776,28 @@ class TransportPlanner {
                     </div>
 
                     <div class="segment-inputs">
-                        <input
-                            type="text"
-                            placeholder="From"
-                            value="${segment.from}"
-                            class="form-input"
-                            data-segment-id="${segment.id}"
-                            data-field="from"
-                        />
-                        <input
-                            type="text"
-                            placeholder="To"
-                            value="${segment.to}"
-                            class="form-input"
-                            data-segment-id="${segment.id}"
-                            data-field="to"
-                        />
+                        <div class="input-wrapper">
+                            <input
+                                type="text"
+                                placeholder="From"
+                                value="${segment.from}"
+                                class="form-input"
+                                data-segment-id="${segment.id}"
+                                data-field="from"
+                            />
+                            <div id="seg-suggestions-${segment.id}-from" class="suggestions-dropdown hidden"><div class="suggestions-content"></div></div>
+                        </div>
+                        <div class="input-wrapper">
+                            <input
+                                type="text"
+                                placeholder="To"
+                                value="${segment.to}"
+                                class="form-input"
+                                data-segment-id="${segment.id}"
+                                data-field="to"
+                            />
+                            <div id="seg-suggestions-${segment.id}-to" class="suggestions-dropdown hidden"><div class="suggestions-content"></div></div>
+                        </div>
                     </div>
 
                     <div class="segment-inputs">
@@ -773,11 +842,80 @@ class TransportPlanner {
             } else if (field) {
                 element.addEventListener('input', (e) => {
                     this.updateSegment(segmentId, field, e.target.value);
+                    // Show filtered dropdown for segment from/to
+                    if (field === 'from' || field === 'to') {
+                        const dropdownId = `seg-suggestions-${segmentId}-${field}`;
+                        const dropdown = document.getElementById(dropdownId);
+                        if (dropdown) {
+                            let items = [];
+                            const q = (e.target.value || '').trim();
+                            if (q.length === 0) {
+                                try {
+                                    items = (window.getPopularDestinations && window.getPopularDestinations(8)) || [];
+                                } catch (_) { items = []; }
+                            } else {
+                                try {
+                                    items = (window.searchDestinations && window.searchDestinations(q, 8) || []).map(d => d.name || d);
+                                } catch (_) { items = []; }
+                            }
+                            const content = dropdown.querySelector('.suggestions-content');
+                            content.innerHTML = (items || []).map(name => `<button class="suggestion-item" data-name="${name}" data-seg="${segmentId}" data-field="${field}">${name}</button>`).join('');
+                            dropdown.classList.toggle('hidden', !items || items.length === 0);
+                            // Bind clicks for newly rendered items
+                            content.querySelectorAll('.suggestion-item').forEach(btn => {
+                                btn.addEventListener('click', (ev) => {
+                                    const n = ev.currentTarget.getAttribute('data-name');
+                                    const seg = ev.currentTarget.getAttribute('data-seg');
+                                    const fld = ev.currentTarget.getAttribute('data-field');
+                                    this.updateSegment(seg, fld, n);
+                                    // reflect in input
+                                    const inputEl = container.querySelector(`input[data-segment-id="${seg}"][data-field="${fld}"]`);
+                                    if (inputEl) inputEl.value = n;
+                                    dropdown.classList.add('hidden');
+                                    this.updateSummary();
+                                });
+                            });
+                        }
+                    }
                 });
                 element.addEventListener('change', (e) => {
                     this.updateSegment(segmentId, field, e.target.value);
                     if (field === 'mode') {
                         this.updateTransportationSection(); // Re-render to update icon
+                    }
+                });
+                element.addEventListener('focus', (e) => {
+                    if (field === 'from' || field === 'to') {
+                        const dropdownId = `seg-suggestions-${segmentId}-${field}`;
+                        const dropdown = document.getElementById(dropdownId);
+                        if (dropdown) {
+                            let items = [];
+                            const q = (e.target.value || '').trim();
+                            if (q.length === 0) {
+                                try {
+                                    items = (window.getPopularDestinations && window.getPopularDestinations(8)) || [];
+                                } catch (_) { items = []; }
+                            } else {
+                                try {
+                                    items = (window.searchDestinations && window.searchDestinations(q, 8) || []).map(d => d.name || d);
+                                } catch (_) { items = []; }
+                            }
+                            const content = dropdown.querySelector('.suggestions-content');
+                            content.innerHTML = (items || []).map(name => `<button class="suggestion-item" data-name="${name}" data-seg="${segmentId}" data-field="${field}">${name}</button>`).join('');
+                            dropdown.classList.toggle('hidden', !items || items.length === 0);
+                            content.querySelectorAll('.suggestion-item').forEach(btn => {
+                                btn.addEventListener('click', (ev) => {
+                                    const n = ev.currentTarget.getAttribute('data-name');
+                                    const seg = ev.currentTarget.getAttribute('data-seg');
+                                    const fld = ev.currentTarget.getAttribute('data-field');
+                                    this.updateSegment(seg, fld, n);
+                                    const inputEl = container.querySelector(`input[data-segment-id="${seg}"][data-field="${fld}"]`);
+                                    if (inputEl) inputEl.value = n;
+                                    dropdown.classList.add('hidden');
+                                    this.updateSummary();
+                                });
+                            });
+                        }
                     }
                 });
             }

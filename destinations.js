@@ -1180,6 +1180,26 @@ const destinationsData = [
     }
 ];
 
+// Add more Indian cities (lightweight entries to improve search/suggestions)
+const additionalCities = [
+    { name: "Ahmedabad", state: "Gujarat", type: "Metropolitan", duration: "2-3 days", bestTime: "Nov to Feb", accommodation: "City Hotel", activities: ["Sabarmati Ashram", "Kankaria Lake"], transportation: [], coordinates: { lat: 23.0225, lng: 72.5714 }, popularity: 82, cost: 12000 },
+    { name: "Pune", state: "Maharashtra", type: "Metropolitan", duration: "2-3 days", bestTime: "Oct to Feb", accommodation: "Business Hotel", activities: ["Shaniwar Wada", "Aga Khan Palace"], transportation: [], coordinates: { lat: 18.5204, lng: 73.8567 }, popularity: 85, cost: 13000 },
+    { name: "Hyderabad", state: "Telangana", type: "Metropolitan", duration: "2-3 days", bestTime: "Oct to Feb", accommodation: "City Hotel", activities: ["Charminar", "Golconda Fort"], transportation: [], coordinates: { lat: 17.3850, lng: 78.4867 }, popularity: 90, cost: 14000 },
+    { name: "Surat", state: "Gujarat", type: "Metropolitan", duration: "1-2 days", bestTime: "Nov to Feb", accommodation: "City Hotel", activities: ["Dumas Beach"], transportation: [], coordinates: { lat: 21.1702, lng: 72.8311 }, popularity: 70, cost: 9000 },
+    { name: "Lucknow", state: "Uttar Pradesh", type: "Metropolitan", duration: "2-3 days", bestTime: "Oct to Mar", accommodation: "City Hotel", activities: ["Bara Imambara", "Hazratganj"], transportation: [], coordinates: { lat: 26.8467, lng: 80.9462 }, popularity: 80, cost: 12000 },
+    { name: "Kanpur", state: "Uttar Pradesh", type: "Metropolitan", duration: "1-2 days", bestTime: "Oct to Mar", accommodation: "City Hotel", activities: ["Bithoor"], transportation: [], coordinates: { lat: 26.4499, lng: 80.3319 }, popularity: 68, cost: 9000 },
+    { name: "Chandigarh", state: "Chandigarh", type: "Metropolitan", duration: "1-2 days", bestTime: "Oct to Mar", accommodation: "City Hotel", activities: ["Rock Garden", "Sukhna Lake"], transportation: [], coordinates: { lat: 30.7333, lng: 76.7794 }, popularity: 78, cost: 11000 },
+    { name: "Bhopal", state: "Madhya Pradesh", type: "Metropolitan", duration: "1-2 days", bestTime: "Oct to Mar", accommodation: "City Hotel", activities: ["Upper Lake", "Sanchi (nearby)"], transportation: [], coordinates: { lat: 23.2599, lng: 77.4126 }, popularity: 74, cost: 10000 },
+    { name: "Indore", state: "Madhya Pradesh", type: "Metropolitan", duration: "1-2 days", bestTime: "Oct to Mar", accommodation: "City Hotel", activities: ["Rajwada", "Sarafa Night Market"], transportation: [], coordinates: { lat: 22.7196, lng: 75.8577 }, popularity: 79, cost: 11000 },
+    { name: "Patna", state: "Bihar", type: "Metropolitan", duration: "1-2 days", bestTime: "Nov to Feb", accommodation: "City Hotel", activities: ["Golghar", "Gandhi Maidan"], transportation: [], coordinates: { lat: 25.5941, lng: 85.1376 }, popularity: 66, cost: 9000 },
+    { name: "Vadodara", state: "Gujarat", type: "Metropolitan", duration: "1-2 days", bestTime: "Nov to Feb", accommodation: "City Hotel", activities: ["Laxmi Vilas Palace"], transportation: [], coordinates: { lat: 22.3072, lng: 73.1812 }, popularity: 72, cost: 9500 },
+    { name: "Coimbatore", state: "Tamil Nadu", type: "Metropolitan", duration: "1-2 days", bestTime: "Nov to Feb", accommodation: "City Hotel", activities: ["Marudamalai", "Isha Yoga Center"], transportation: [], coordinates: { lat: 11.0168, lng: 76.9558 }, popularity: 73, cost: 10000 },
+    { name: "Nagpur", state: "Maharashtra", type: "Metropolitan", duration: "1-2 days", bestTime: "Nov to Feb", accommodation: "City Hotel", activities: ["Deekshabhoomi"], transportation: [], coordinates: { lat: 21.1458, lng: 79.0882 }, popularity: 71, cost: 9500 },
+    { name: "Visakhapatnam", state: "Andhra Pradesh", type: "Metropolitan", duration: "2-3 days", bestTime: "Nov to Feb", accommodation: "Beach Hotel", activities: ["RK Beach", "Kailasagiri"], transportation: [], coordinates: { lat: 17.6868, lng: 83.2185 }, popularity: 80, cost: 12000 }
+];
+
+destinationsData.push(...additionalCities);
+
 // ============= INITIALIZATION =============
 
 // Initialize data structures
@@ -1273,6 +1293,12 @@ function searchDestinations(query, limit = 10) {
     return mergeSort(finalResults, (a, b) => b.popularity - a.popularity).slice(0, limit);
 }
 
+// Get popular destinations by popularity score
+function getPopularDestinations(limit = 8) {
+    const sorted = mergeSort([...destinationsData], (a, b) => b.popularity - a.popularity);
+    return sorted.slice(0, limit).map(d => d.name);
+}
+
 // Get all destination names for autocomplete
 function getAllDestinationNames() {
     return destinationsData.map(dest => dest.name);
@@ -1349,6 +1375,7 @@ initializeDataStructures();
 
 // Export functions for use in main script
 window.searchDestinations = searchDestinations;
+window.getPopularDestinations = getPopularDestinations;
 window.getAllDestinationNames = getAllDestinationNames;
 window.searchDestination = searchDestination;
 window.getOptimizedRoute = getOptimizedRoute;

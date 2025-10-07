@@ -12,12 +12,13 @@
     <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-firestore-compat.js"></script>
     <script src="config.js"></script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=key&callback=initMap" async defer></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyABz7tOUR5D7r7Ggnp8un6K91i68zSnO8w&libraries=places&callback=initMap" async defer></script>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" />
 </head>
 <body>
     <div id="firebase-status" class="firebase-status" style="display: none;">
         <div class="status-indicator">
+
             <span class="status-dot"></span>
             <span class="status-text">Connecting to Firebase...</span>
         </div>
@@ -333,12 +334,55 @@
                 </div>
             </div>
         </div>
+
+        <!-- DSA Showcase -->
+        <div class="features-section">
+            <div class="features-content">
+                <div class="features-header">
+                    <h2 class="features-title">DSA Showcase</h2>
+                    <p class="features-description">Quick demos of basic data structures used in this project.</p>
+                </div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <h3 class="feature-title">Linked List</h3>
+                        <button class="btn-outline" onclick="window.dsaDemo.runLinkedList()">Run Demo</button>
+                        <pre id="dsa-ll" class="features-description" style="margin-top:8px; white-space:pre-wrap;"></pre>
+                    </div>
+                    <div class="feature-card">
+                        <h3 class="feature-title">Queue</h3>
+                        <button class="btn-outline" onclick="window.dsaDemo.runQueue()">Run Demo</button>
+                        <pre id="dsa-queue" class="features-description" style="margin-top:8px; white-space:pre-wrap;"></pre>
+                    </div>
+                    <div class="feature-card">
+                        <h3 class="feature-title">Min Heap</h3>
+                        <button class="btn-outline" onclick="window.dsaDemo.runHeap()">Run Demo</button>
+                        <pre id="dsa-heap" class="features-description" style="margin-top:8px; white-space:pre-wrap;"></pre>
+                    </div>
+                    <div class="feature-card">
+                        <h3 class="feature-title">Graph BFS</h3>
+                        <button class="btn-outline" onclick="window.dsaDemo.runGraphBFS()">Run Demo</button>
+                        <pre id="dsa-graph" class="features-description" style="margin-top:8px; white-space:pre-wrap;"></pre>
+                    </div>
+                    <div class="feature-card">
+                        <h3 class="feature-title">Binary Search Tree</h3>
+                        <button class="btn-outline" onclick="window.dsaDemo.runBST()">Run Demo</button>
+                        <pre id="dsa-bst" class="features-description" style="margin-top:8px; white-space:pre-wrap;"></pre>
+                    </div>
+                    <div class="feature-card">
+                        <h3 class="feature-title">Hash Map</h3>
+                        <button class="btn-outline" onclick="window.dsaDemo.runHashMap()">Run Demo</button>
+                        <pre id="dsa-hash" class="features-description" style="margin-top:8px; white-space:pre-wrap;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="api-config.js"></script>
     <script src="api-service.js"></script>
     <script src="destinations.js"></script>
     <script src="maps.js"></script>
+    <script src="dsa-demo.js"></script>
     <script src="script.js"></script>
     <script src="auth.js"></script>
 </body>
